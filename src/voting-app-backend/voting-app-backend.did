@@ -1,0 +1,11 @@
+type Topic = record {
+  title : text;
+  owner : principal;
+  options : vec record { text; nat32 };
+};
+service : {
+  Get_Poll : (nat64) -> (opt Topic) query;
+  Get_Polls_count : () -> (nat64) query;
+  Make_Poll : (text, vec text) -> ();
+  vote : (nat64, text) -> ();
+}
