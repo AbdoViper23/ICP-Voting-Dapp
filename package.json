@@ -9,10 +9,19 @@
     "prebuild": "npm run prebuild --workspaces --if-present",
     "pretest": "npm run prebuild --workspaces --if-present",
     "start": "npm start --workspaces --if-present",
+    "dev": "npm start --workspace=src/voting-app-frontend",
     "test": "npm test --workspaces --if-present"
   },
   "type": "module",
   "workspaces": [
     "src/voting-app-frontend"
-  ]
+  ],
+  "dependencies": {
+    "lucide-react": "^0.534.0"
+  },
+  "devDependencies": {
+    "autoprefixer": "^10.4.21",
+    "postcss": "^8.5.6",
+         "tailwindcss": "^3.4.0"
+  }
 }
