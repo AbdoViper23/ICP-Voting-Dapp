@@ -1,8 +1,10 @@
 import { useState, useEffect } from 'react';
-import { Plus, Vote, Users } from 'lucide-react';
+import { Plus, Vote, Users, LogIn, LogOut, User } from 'lucide-react';
 import { voting_app_backend } from 'declarations/voting-app-backend';
+import { useAuth } from './AuthContext';
 
 function App() {
+  const { isAuthenticated, principal, login, logout, loading: authLoading } = useAuth();
   const [polls, setPolls] = useState([]);
   const [pollsCount, setPollsCount] = useState(0);
   const [loading, setLoading] = useState(false);
@@ -43,6 +45,11 @@ function App() {
 
   const handleCreatePoll = async (e) => {
     e.preventDefault();
+    if (!isAuthenticated) {
+      alert('Please login to create polls');
+      return;
+    }
+    
     if (!newPollTitle.trim() || newPollOptions.filter(opt => opt.trim()).length < 2) {
       alert('Please enter poll title and at least two options');
       return;
@@ -68,6 +75,11 @@ function App() {
   };
 
   const handleVote = async (pollId, option) => {
+    if (!isAuthenticated) {
+      alert('Please login to vote');
+      return;
+    }
+    
     setLoading(true);
     try {
       await voting_app_backend.vote(pollId, option);
@@ -91,13 +103,63 @@ function App() {
     }
   };
 
+  if (authLoading) {
+    return (
+      <div className="min-h-screen bg-gray-50 flex items-center justify-center">
+        <div className="text-center">
+          <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-500 mx-auto mb-4"></div>
+          <p className="text-gray-600">Loading...</p>
+        </div>
+      </div>
+    );
+  }
+
   return (
     <div className="min-h-screen bg-gray-50 p-4">
       <div className="max-w-4xl mx-auto">
-        <h1 className="text-3xl font-bold text-center mb-8 text-gray-800">
-          <Vote className="inline mr-2" size={32} />
-          Voting System
-        </h1>
+        {/* Header with Authentication */}
+        <div className="bg-white p-6 rounded-lg shadow mb-8">
+          <div className="flex justify-between items-center mb-4">
+            <h1 className="text-3xl font-bold text-gray-800">
+              <Vote className="inline mr-2" size={32} />
+              Voting System
+            </h1>
+            
+            <div className="flex items-center gap-4">
+              {isAuthenticated ? (
+                <div className="flex items-center gap-3">
+                  <div className="text-sm text-gray-600">
+                    <User className="inline mr-1" size={16} />
+                    {principal ? principal.substring(0, 8) + '...' + principal.substring(principal.length - 4) : 'Loading...'}
+                  </div>
+                  <button
+                    onClick={logout}
+                    className="flex items-center gap-2 px-4 py-2 bg-red-500 text-white rounded-md hover:bg-red-600 transition-colors"
+                  >
+                    <LogOut size={16} />
+                    Logout
+                  </button>
+                </div>
+              ) : (
+                <button
+                  onClick={login}
+                  className="flex items-center gap-2 px-4 py-2 bg-blue-500 text-white rounded-md hover:bg-blue-600 transition-colors"
+                >
+                  <LogIn size={16} />
+                  Login with Internet Identity
+                </button>
+              )}
+            </div>
+          </div>
+          
+          {!isAuthenticated && (
+            <div className="bg-blue-50 border border-blue-200 rounded-md p-4">
+              <p className="text-blue-800 text-sm">
+                <strong>Note:</strong> You need to login with Internet Identity to create polls and vote.
+              </p>
+            </div>
+          )}
+        </div>
 
         {/* Create New Poll Section */}
         <div className="bg-white p-6 rounded-lg shadow mb-8">
@@ -106,68 +168,81 @@ function App() {
             Create New Poll
           </h2>
           
-          <form onSubmit={handleCreatePoll} className="space-y-4">
-            <div>
-              <label className="block text-sm font-medium text-gray-700 mb-2">
-                Poll Title
-              </label>
-              <input
-                type="text"
-                value={newPollTitle}
-                onChange={(e) => setNewPollTitle(e.target.value)}
-                className="w-full p-3 border rounded-md focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
-                placeholder="Enter poll title..."
-                required
-              />
-            </div>
-
-            <div>
-              <label className="block text-sm font-medium text-gray-700 mb-2">
-                Options
-              </label>
-              {newPollOptions.map((option, index) => (
-                <div key={index} className="flex gap-2 mb-2">
-                  <input
-                    type="text"
-                    value={option}
-                    onChange={(e) => {
-                      const newOptions = [...newPollOptions];
-                      newOptions[index] = e.target.value;
-                      setNewPollOptions(newOptions);
-                    }}
-                    className="flex-1 p-3 border rounded-md focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
-                    placeholder={`Option ${index + 1}`}
-                    required
-                  />
-                  {newPollOptions.length > 2 && (
-                    <button
-                      type="button"
-                      onClick={() => removeOption(index)}
-                      className="px-3 py-1 bg-red-500 text-white rounded-md hover:bg-red-600"
-                    >
-                      Remove
-                    </button>
-                  )}
-                </div>
-              ))}
-              
+          {!isAuthenticated ? (
+            <div className="text-center py-8">
+              <p className="text-gray-600 mb-4">Please login to create polls</p>
               <button
-                type="button"
-                onClick={addOption}
-                className="mt-2 px-4 py-2 bg-gray-500 text-white rounded-md hover:bg-gray-600"
+                onClick={login}
+                className="flex items-center gap-2 px-6 py-3 bg-blue-500 text-white rounded-md hover:bg-blue-600 transition-colors mx-auto"
               >
-                Add Option
+                <LogIn size={16} />
+                Login with Internet Identity
               </button>
             </div>
+          ) : (
+            <form onSubmit={handleCreatePoll} className="space-y-4">
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-2">
+                  Poll Title
+                </label>
+                <input
+                  type="text"
+                  value={newPollTitle}
+                  onChange={(e) => setNewPollTitle(e.target.value)}
+                  className="w-full p-3 border rounded-md focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+                  placeholder="Enter poll title..."
+                  required
+                />
+              </div>
 
-            <button
-              type="submit"
-              disabled={loading}
-              className="w-full py-3 bg-blue-500 text-white rounded-md hover:bg-blue-600 disabled:opacity-50 disabled:cursor-not-allowed"
-            >
-              {loading ? 'Creating...' : 'Create Poll'}
-            </button>
-          </form>
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-2">
+                  Options
+                </label>
+                {newPollOptions.map((option, index) => (
+                  <div key={index} className="flex gap-2 mb-2">
+                    <input
+                      type="text"
+                      value={option}
+                      onChange={(e) => {
+                        const newOptions = [...newPollOptions];
+                        newOptions[index] = e.target.value;
+                        setNewPollOptions(newOptions);
+                      }}
+                      className="flex-1 p-3 border rounded-md focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+                      placeholder={`Option ${index + 1}`}
+                      required
+                    />
+                    {newPollOptions.length > 2 && (
+                      <button
+                        type="button"
+                        onClick={() => removeOption(index)}
+                        className="px-3 py-1 bg-red-500 text-white rounded-md hover:bg-red-600"
+                      >
+                        Remove
+                      </button>
+                    )}
+                  </div>
+                ))}
+                
+                <button
+                  type="button"
+                  onClick={addOption}
+                  className="mt-2 px-4 py-2 bg-gray-500 text-white rounded-md hover:bg-gray-600"
+                >
+                  Add Option
+                </button>
+              </div>
+
+              <button
+                type="submit"
+                disabled={loading}
+                className="w-full py-3 bg-blue-500 text-white rounded-md hover:bg-blue-600 disabled:opacity-50 disabled:cursor-not-allowed"
+              >
+                {loading ? 'Creating...' : 'Create Poll'}
+              </button>
+            </form>
+          )}
         </div>
 
         {/* Polls List */}
@@ -191,7 +266,7 @@ function App() {
                     <div key={option} className="flex items-center justify-between">
                       <button
                         onClick={() => handleVote(poll.id, option)}
-                        disabled={loading}
+                        disabled={loading || !isAuthenticated}
                         className="flex-1 text-left p-3 border rounded-md hover:bg-blue-50 hover:border-blue-300 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
                       >
                         <span className="font-medium">{option}</span>
@@ -206,6 +281,19 @@ function App() {
                 <div className="mt-4 text-sm text-gray-500 text-center">
                   Total Votes: {poll.options.reduce((total, [, votes]) => total + Number(votes), 0)}
                 </div>
+                
+                {!isAuthenticated && (
+                  <div className="mt-4 text-center">
+                    <p className="text-sm text-gray-600 mb-2">Login to vote on this poll</p>
+                    <button
+                      onClick={login}
+                      className="flex items-center gap-2 px-4 py-2 bg-blue-500 text-white rounded-md hover:bg-blue-600 transition-colors mx-auto"
+                    >
+                      <LogIn size={16} />
+                      Login
+                    </button>
+                  </div>
+                )}
               </div>
             ))
           )}
